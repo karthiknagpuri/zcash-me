@@ -2,619 +2,16 @@
 
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import ProfileCardPassport from "./components/ProfileCardPassport";
 
-// Animated patterns for each card type
-function AnimatedLines({ isHovering }) {
-  return (
-    <div className="absolute top-4 left-4 right-4 h-28 overflow-hidden">
-      <div className="relative w-full h-full flex items-end justify-around px-1">
-        {[...Array(16)].map((_, i) => {
-          const baseHeight = 30 + Math.sin(i * 0.8) * 20;
-          const hoverHeight = 60 + Math.sin(i * 0.5) * 25;
-          return (
-            <div
-              key={i}
-              className="w-1.5 rounded-full bg-white/40"
-              style={{
-                height: isHovering ? `${hoverHeight}%` : `${baseHeight}%`,
-                transition: `height ${0.3 + i * 0.02}s ease-out, opacity 0.3s ease-out`,
-                opacity: isHovering ? 0.6 : 0.4,
-              }}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function AnimatedGrid({ isHovering }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-
-  return (
-    <div className="absolute top-4 left-4 right-4 h-28 overflow-hidden">
-      <div
-        className="grid grid-cols-8 grid-rows-6 gap-1 h-full"
-        style={{
-          transition: 'transform 0.5s ease-out',
-          transform: isHovering ? 'scale(1.1)' : 'scale(1)',
-        }}
-      >
-        {[...Array(48)].map((_, i) => (
-          <div
-            key={i}
-            className="rounded-sm"
-            style={{
-              backgroundColor: mounted
-                ? `rgba(0,0,0,${isHovering ? 0.1 + (Math.random() * 0.3) : 0.1 + ((i % 8) * 0.05)})`
-                : `rgba(0,0,0,${0.1 + ((i % 8) * 0.05)})`,
-              transition: `background-color ${0.2 + (i % 5) * 0.1}s ease-out`,
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function AnimatedWaves({ isHovering }) {
-  return (
-    <div className="absolute top-4 left-4 right-4 h-28 overflow-hidden">
-      <svg viewBox="0 0 100 80" className="w-full h-full">
-        {[...Array(14)].map((_, i) => (
-          <path
-            key={i}
-            d={isHovering
-              ? `M0 ${5 + i * 6} Q25 ${i % 2 === 0 ? -5 : 15} 50 ${5 + i * 6} T100 ${5 + i * 6}`
-              : `M0 ${5 + i * 6} Q25 ${5 + i * 6} 50 ${5 + i * 6} T100 ${5 + i * 6}`
-            }
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            className="text-white/40"
-            style={{
-              transition: `d 0.4s ease-out ${i * 0.03}s`,
-            }}
-          />
-        ))}
-      </svg>
-    </div>
-  );
-}
-
-function AnimatedBlocks({ isHovering }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-
-  return (
-    <div className="absolute top-4 left-4 right-4 h-28 overflow-hidden">
-      <div className="relative w-full h-full">
-        {[...Array(6)].map((_, row) => (
-          <div
-            key={row}
-            className="flex gap-0.5 mb-0.5"
-            style={{
-              transform: isHovering ? `translateX(${row % 2 === 0 ? 4 : -4}px)` : 'translateX(0)',
-              transition: `transform 0.4s ease-out ${row * 0.05}s`,
-            }}
-          >
-            {[...Array(16)].map((_, col) => (
-              <div
-                key={col}
-                className="w-2 h-3 rounded-sm"
-                style={{
-                  backgroundColor: isHovering && mounted
-                    ? `rgba(0,80,60,${0.3 + Math.random() * 0.4})`
-                    : `rgba(0,80,60,${(col + row) % 3 === 0 ? 0.5 : 0.2})`,
-                  transition: `background-color ${mounted ? 0.2 + Math.random() * 0.3 : 0.3}s ease-out`,
-                }}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function AnimatedCircles({ isHovering }) {
-  return (
-    <div className="absolute top-4 left-4 right-4 h-28 overflow-hidden">
-      <svg viewBox="0 0 100 80" className="w-full h-full">
-        {[...Array(12)].map((_, i) => {
-          const cx = 10 + (i % 4) * 28;
-          const cy = 15 + Math.floor(i / 4) * 25;
-          const baseRadius = 8 + (i % 3) * 2;
-          return (
-            <circle
-              key={i}
-              cx={cx}
-              cy={cy}
-              r={isHovering ? baseRadius + 3 : baseRadius}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="text-white/40"
-              style={{
-                transition: `r 0.3s ease-out ${i * 0.04}s, opacity 0.3s ease-out`,
-                opacity: isHovering ? 0.7 : 0.4,
-              }}
-            />
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
-function AnimatedDots({ isHovering }) {
-  return (
-    <div className="absolute top-4 left-4 right-4 h-28 overflow-hidden">
-      <div className="relative w-full h-full flex flex-wrap gap-2 p-2">
-        {[...Array(35)].map((_, i) => (
-          <div
-            key={i}
-            className="rounded-full"
-            style={{
-              width: isHovering ? `${6 + (i % 4) * 2}px` : '6px',
-              height: isHovering ? `${6 + (i % 4) * 2}px` : '6px',
-              backgroundColor: `rgba(80,20,60,${isHovering ? 0.4 + (i % 5) * 0.1 : 0.3})`,
-              transition: `all 0.3s ease-out ${i * 0.015}s`,
-              transform: isHovering ? `translateY(${(i % 3 - 1) * 3}px)` : 'translateY(0)',
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Fanned Parallax Card Component
-function FannedCard({
-  profile,
-  cardColor,
-  rotation,
-  offset,
-  verticalOffset = 0,
-  zIndex,
-  textColor,
-  textColorMuted,
-  onClick,
-  patternType,
-  isMobile,
-  isActive,
-  stackIndex,
-  isSpotlit,
-  onInteractionStart,
-  onInteractionEnd,
-  shimmerSpeed = '', // '', 'card-shimmer-fast', or 'card-shimmer-slow'
-}) {
-  const cardRef = useRef(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [isHovering, setIsHovering] = useState(false);
-
-  const handleMouseMove = useCallback((e) => {
-    if (!cardRef.current || isMobile) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const tiltX = (y - centerY) / centerY * -10;
-    const tiltY = (x - centerX) / centerX * 10;
-    setTilt({ x: tiltX, y: tiltY });
-  }, [isMobile]);
-
-  const handleMouseEnter = () => {
-    if (isMobile) return;
-    setIsHovering(true);
-    onInteractionStart?.();
-  };
-  const handleMouseLeave = () => {
-    setIsHovering(false);
-    setTilt({ x: 0, y: 0 });
-    onInteractionEnd?.();
-  };
-
-  // Render the appropriate pattern based on type
-  // isActive for mobile, isSpotlit for desktop auto-spotlight
-  const patternActive = isHovering || isActive || isSpotlit;
-  const renderPattern = () => {
-    switch (patternType) {
-      case 'lines': return <AnimatedLines isHovering={patternActive} />;
-      case 'grid': return <AnimatedGrid isHovering={patternActive} />;
-      case 'waves': return <AnimatedWaves isHovering={patternActive} />;
-      case 'blocks': return <AnimatedBlocks isHovering={patternActive} />;
-      case 'circles': return <AnimatedCircles isHovering={patternActive} />;
-      case 'dots': return <AnimatedDots isHovering={patternActive} />;
-      default: return <AnimatedLines isHovering={patternActive} />;
-    }
-  };
-
-  // Check verification status
-  const isVerified = profile.address_verified || (profile.verified_links_count ?? 0) > 0;
-
-  // Get links count for mobile
-  const mobileTotalLinks = profile.total_links ?? (Array.isArray(profile.links) ? profile.links.length : 0);
-
-  // Mobile stacked layout - ProfileCard style (tall rectangle)
-  // Real-world card stack: cards behind are slightly lower and scaled down
-  if (isMobile) {
-    // Stack cards like a real deck - each card behind is offset down and slightly smaller
-    // Active card pops up with negative offset for emphasis
-    const stackOffset = isActive ? -16 : stackIndex * 8; // Active card pops up, others stack down
-    const stackScale = isActive ? 1.05 : 1 - (stackIndex * 0.03); // Active card scales up
-    const stackRotation = stackIndex === 0 ? 0 : (stackIndex % 2 === 0 ? 2 : -2) * (stackIndex * 0.5); // Subtle rotation
-
-    return (
-      <div
-        ref={cardRef}
-        onClick={onClick}
-        className="absolute cursor-pointer left-1/2"
-        style={{
-          transform: `translateX(-50%) translateY(${stackOffset}px) scale(${stackScale}) rotate(${isActive ? 0 : stackRotation}deg)`,
-          zIndex: isActive ? 50 : (20 - stackIndex),
-          transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s ease, z-index 0s',
-          opacity: isActive ? 1 : Math.max(0.4, 1 - (stackIndex * 0.15)),
-          transformOrigin: 'center center',
-        }}
-      >
-        {/* Avatar - positioned half outside */}
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-20">
-          <div className={`w-16 h-16 rounded-full overflow-hidden bg-[#1a1a1a] shadow-lg ${isVerified ? 'ring-3 ring-[#22c55e]' : 'ring-3 ring-[#f5c542]'}`}
-            style={{
-              transform: isActive ? 'scale(1.1)' : 'scale(1)',
-              transition: 'transform 0.3s ease-out',
-            }}
-          >
-            {profile.profile_image_url ? (
-              <img src={profile.profile_image_url} alt={profile.name} className="w-full h-full object-cover" style={{ objectPosition: '30% center' }} />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-[#faf6ed] text-lg font-medium">
-                {profile.name?.[0]?.toUpperCase() || "?"}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div
-          className={`bg-[#faf6ed] w-[160px] h-[240px] rounded-2xl border-2 border-[#f5c542] p-3 pt-12 shadow-xl text-center flex flex-col ${isActive ? `card-shimmer ${shimmerSpeed}` : ''}`}
-          style={{
-            transform: isActive ? 'scale(1)' : 'scale(0.98)',
-            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: isActive
-              ? '0 25px 50px -12px rgba(245, 197, 66, 0.4), 0 10px 20px -5px rgba(0, 0, 0, 0.2)'
-              : '0 5px 15px -5px rgba(0, 0, 0, 0.15)',
-          }}
-        >
-          {/* Name with verified badge */}
-          <div className="flex items-center justify-center gap-1 mb-0.5">
-            <span className="font-bold text-xs text-[#1a1a1a] truncate max-w-[100px]">
-              {profile.display_name || profile.name}
-            </span>
-            {isVerified && (
-              <span className="w-3.5 h-3.5 bg-[#22c55e] rounded-full flex items-center justify-center shrink-0">
-                <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </span>
-            )}
-          </div>
-
-          {/* Username */}
-          <p className="text-[9px] text-[#1a1a1a]/60 mb-1.5">@{profile.name}</p>
-
-          {/* Bio snippet - always reserve space */}
-          <p className="text-[8px] text-[#1a1a1a]/70 mb-1.5 line-clamp-2 leading-relaxed px-1 min-h-[24px]">
-            {profile.bio || <span className="invisible">Bio placeholder</span>}
-          </p>
-
-          {/* Address pill with icons inside */}
-          {profile.address && (
-            <div className="flex justify-center mb-1.5">
-              <div className="flex items-center gap-1.5 bg-white border border-[#e5e5e5] rounded-lg px-2 py-1">
-                <span className="font-mono text-[7px] text-[#1a1a1a] leading-none">
-                  {profile.address.slice(0, 4)}...{profile.address.slice(-4)}
-                </span>
-                {/* QR Code icon */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); }}
-                  className="text-[#1a1a1a]/50 hover:text-[#1a1a1a] transition-colors"
-                >
-                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <rect x="3" y="3" width="7" height="7" rx="1" />
-                    <rect x="14" y="3" width="7" height="7" rx="1" />
-                    <rect x="3" y="14" width="7" height="7" rx="1" />
-                    <rect x="14" y="14" width="3" height="3" />
-                    <rect x="18" y="14" width="3" height="3" />
-                    <rect x="14" y="18" width="3" height="3" />
-                    <rect x="18" y="18" width="3" height="3" />
-                  </svg>
-                </button>
-                {/* Copy icon */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(profile.address);
-                  }}
-                  className="text-[#1a1a1a]/50 hover:text-[#1a1a1a] transition-colors"
-                >
-                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <rect x="9" y="9" width="13" height="13" rx="2" />
-                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Links section - show icons + usernames */}
-          {mobileTotalLinks > 0 && (
-            <div className="mt-auto w-full">
-              <div className="bg-white/80 rounded border border-[#e5e5e5] px-1 py-0.5">
-                <div className="flex flex-col gap-0.5">
-                  {(profile.links || []).slice(0, 2).map((link, i) => {
-                    let faviconUrl = '';
-                    try {
-                      const domain = new URL(link.url || '').hostname;
-                      faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-                    } catch { faviconUrl = ''; }
-                    const iconSrc = link.icon?.src || link.icon || faviconUrl;
-                    return (
-                      <div key={i} className="flex items-center gap-1 min-w-0">
-                        {iconSrc && (
-                          <img
-                            src={iconSrc}
-                            alt=""
-                            className="w-2.5 h-2.5 rounded-sm object-contain shrink-0"
-                            onError={(e) => { e.target.style.display = 'none'; }}
-                          />
-                        )}
-                        <span className="text-[7px] text-[#1a1a1a]/70 truncate">
-                          {link.label || link.url?.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || 'Link'}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {mobileTotalLinks > 2 && (
-                    <span className="text-[6px] text-[#1a1a1a]/40 text-center">
-                      +{mobileTotalLinks - 2} more
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* City/Location if available */}
-          {profile.nearest_city && (
-            <div className="mt-1 flex items-center justify-center gap-0.5 text-[7px] text-[#1a1a1a]/50">
-              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-              </svg>
-              <span className="truncate max-w-[80px]">{profile.nearest_city}</span>
-            </div>
-          )}
-
-          {/* View profile hint */}
-          <div className="mt-auto pt-1">
-            <span className="text-[7px] text-[#f5c542] font-medium uppercase tracking-wider">
-              Tap to view →
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Desktop fanned layout - isSpotlit highlights the card when auto-cycling
-  const isHighlighted = isHovering || isSpotlit;
-
-  // Get links count
-  const totalLinks = profile.total_links ?? (Array.isArray(profile.links) ? profile.links.length : 0);
-
-  return (
-    <div
-      ref={cardRef}
-      onClick={onClick}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      className="absolute cursor-pointer"
-      style={{
-        transform: `translateX(${offset}px) translateY(${isHighlighted ? verticalOffset - 30 : verticalOffset}px) rotate(${isHighlighted ? 0 : rotation}deg) scale(${isHovering ? 1.05 : isHighlighted ? 1.02 : 1})`,
-        zIndex: isHovering ? 100 : isSpotlit ? 50 : zIndex,
-        transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0s',
-        perspective: '1000px',
-      }}
-    >
-      {/* Avatar - positioned half outside */}
-      <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-20">
-        <div
-          className={`w-20 h-20 rounded-full overflow-hidden bg-[#1a1a1a] shadow-lg ${isVerified ? 'ring-4 ring-[#22c55e]' : 'ring-4 ring-[#f5c542]'}`}
-          style={{
-            transform: isHighlighted ? 'scale(1.1)' : 'scale(1)',
-            transition: 'transform 0.3s ease-out',
-          }}
-        >
-          {profile.profile_image_url ? (
-            <img src={profile.profile_image_url} alt={profile.name} className="w-full h-full object-cover" style={{ objectPosition: '30% center' }} />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-[#faf6ed] text-xl font-medium">
-              {profile.name?.[0]?.toUpperCase() || "?"}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div
-        className={`bg-[#faf6ed] w-[180px] h-[280px] rounded-2xl border-2 border-[#f5c542] p-4 pt-14 text-center shadow-2xl flex flex-col ${isSpotlit && !isHovering ? `card-shimmer ${shimmerSpeed}` : ''}`}
-        style={{
-          transform: isHovering
-            ? `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(1.08)`
-            : isSpotlit
-              ? 'rotateX(0) rotateY(0) scale(1.05)'
-              : 'rotateX(0) rotateY(0) scale(1)',
-          transformStyle: 'preserve-3d',
-          transition: 'transform 0.2s ease-out, box-shadow 0.3s ease-out',
-          boxShadow: isHovering
-            ? '0 35px 60px -15px rgba(245, 197, 66, 0.4)'
-            : isSpotlit
-              ? '0 25px 50px -12px rgba(245, 197, 66, 0.3), 0 20px 40px -10px rgba(0, 0, 0, 0.3)'
-              : '0 15px 35px -10px rgba(0, 0, 0, 0.2)',
-        }}
-      >
-        {/* Name with verified badge */}
-        <div className="flex items-center justify-center gap-1 mb-0.5">
-          <span className="font-bold text-sm text-[#1a1a1a] truncate max-w-[120px]">
-            {profile.display_name || profile.name}
-          </span>
-          {isVerified && (
-            <span className="w-4 h-4 bg-[#22c55e] rounded-full flex items-center justify-center shrink-0">
-              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </span>
-          )}
-        </div>
-
-        {/* Username */}
-        <p className="text-[10px] text-[#1a1a1a]/60 mb-2">@{profile.name}</p>
-
-        {/* Bio snippet - always reserve space */}
-        <p className="text-[9px] text-[#1a1a1a]/70 mb-2 line-clamp-2 leading-relaxed px-1 min-h-[28px]">
-          {profile.bio || <span className="invisible">Bio placeholder</span>}
-        </p>
-
-        {/* Address pill with icons inside */}
-        {profile.address && (
-          <div className="flex justify-center mb-2">
-            <div className="flex items-center gap-2 bg-white border border-[#e5e5e5] rounded-lg px-2.5 py-1">
-              <span className="font-mono text-[8px] text-[#1a1a1a] leading-none">
-                {profile.address.slice(0, 4)}...{profile.address.slice(-4)}
-              </span>
-              {/* QR Code icon */}
-              <button
-                onClick={(e) => { e.stopPropagation(); }}
-                className="text-[#1a1a1a]/50 hover:text-[#1a1a1a] transition-colors"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <rect x="3" y="3" width="7" height="7" rx="1" />
-                  <rect x="14" y="3" width="7" height="7" rx="1" />
-                  <rect x="3" y="14" width="7" height="7" rx="1" />
-                  <rect x="14" y="14" width="3" height="3" />
-                  <rect x="18" y="14" width="3" height="3" />
-                  <rect x="14" y="18" width="3" height="3" />
-                  <rect x="18" y="18" width="3" height="3" />
-                </svg>
-              </button>
-              {/* Copy icon */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigator.clipboard.writeText(profile.address);
-                }}
-                className="text-[#1a1a1a]/50 hover:text-[#1a1a1a] transition-colors"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <rect x="9" y="9" width="13" height="13" rx="2" />
-                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Links section - show icons + usernames */}
-        {totalLinks > 0 && (
-          <div className="mt-auto w-full">
-            <div className="bg-white/80 rounded-lg border border-[#e5e5e5] px-1.5 py-1">
-              <div className="flex flex-col gap-0.5">
-                {(profile.links || []).slice(0, 3).map((link, i) => {
-                  let faviconUrl = '';
-                  try {
-                    const domain = new URL(link.url || '').hostname;
-                    faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-                  } catch { faviconUrl = ''; }
-                  const iconSrc = link.icon?.src || link.icon || faviconUrl;
-                  return (
-                    <div key={i} className="flex items-center gap-1 min-w-0">
-                      {iconSrc && (
-                        <img
-                          src={iconSrc}
-                          alt=""
-                          className="w-3 h-3 rounded-sm object-contain shrink-0"
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                      )}
-                      <span className="text-[8px] text-[#1a1a1a]/70 truncate">
-                        {link.label || link.url?.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || 'Link'}
-                      </span>
-                    </div>
-                  );
-                })}
-                {totalLinks > 3 && (
-                  <span className="text-[7px] text-[#1a1a1a]/40 text-center">
-                    +{totalLinks - 3} more
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* City/Location if available */}
-        {profile.nearest_city && (
-          <div className="mt-2 flex items-center justify-center gap-1 text-[9px] text-[#1a1a1a]/50">
-            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-            </svg>
-            <span className="truncate max-w-[100px]">{profile.nearest_city}</span>
-          </div>
-        )}
-
-        {/* View profile hint */}
-        <div className="mt-auto pt-2">
-          <span className="text-[8px] text-[#f5c542] font-medium uppercase tracking-wider">
-            View Profile →
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Featured Cards Section with mobile shuffle
+// Featured Cards Section - Sliding carousel with arc layout, cards rotate to center
 function FeaturedCardsSection({ featuredProfiles, onCardClick }) {
   const [isMobile, setIsMobile] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
   const interactionTimeout = useRef(null);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
 
-  // Reorder profiles so Frank is in the middle
-  const reorderedProfiles = useMemo(() => {
-    const frankIdx = featuredProfiles.findIndex(p =>
-      p.name?.toLowerCase() === 'frank' || p.display_name?.toLowerCase() === 'frank'
-    );
-
-    if (frankIdx < 0) return featuredProfiles;
-
-    // Calculate center position
-    const centerIdx = Math.floor(featuredProfiles.length / 2);
-
-    // If Frank is already in center, return as is
-    if (frankIdx === centerIdx) return featuredProfiles;
-
-    // Reorder: move profiles so Frank ends up at center
-    const reordered = [...featuredProfiles];
-    const frank = reordered.splice(frankIdx, 1)[0];
-    reordered.splice(centerIdx, 0, frank);
-
-    return reordered;
-  }, [featuredProfiles]);
-
-  // Start from center (Frank's position) and cycle towards right
-  const centerIndex = Math.floor(reorderedProfiles.length / 2);
+  const centerIndex = Math.floor(featuredProfiles.length / 2);
   const [activeCardIndex, setActiveCardIndex] = useState(centerIndex);
 
   // Detect mobile
@@ -632,222 +29,219 @@ function FeaturedCardsSection({ featuredProfiles, onCardClick }) {
     };
   }, []);
 
-  // Auto-spotlight cards (works on both mobile and desktop when not interacting)
-  // Cycles from center (Frank) towards right, then wraps around
+  // Auto-rotate cards - bring each card to center one by one
   useEffect(() => {
-    if (reorderedProfiles.length <= 1 || isInteracting) return;
+    if (featuredProfiles.length <= 1 || isInteracting) return;
     const interval = setInterval(() => {
-      setActiveCardIndex(prev => (prev + 1) % reorderedProfiles.length);
-    }, 3500); // Cycle every 3.5 seconds for smoother viewing
+      setActiveCardIndex(prev => (prev + 1) % featuredProfiles.length);
+    }, 4000);
     return () => clearInterval(interval);
-  }, [reorderedProfiles.length, isInteracting]);
+  }, [featuredProfiles.length, isInteracting]);
 
-  // Handle hover - pause auto-spotlight but don't change active card
-  const handleHoverStart = () => {
+  const handleHoverStart = (index) => {
     setIsInteracting(true);
+    setHoveredIndex(index);
     if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
   };
 
   const handleHoverEnd = () => {
-    // Resume auto-spotlight after 3 seconds of no interaction
+    setHoveredIndex(null);
     if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
     interactionTimeout.current = setTimeout(() => {
       setIsInteracting(false);
     }, 3000);
   };
 
-  // Handle click - bring card to center
   const handleCardClick = (index, profile) => {
     if (isMobile) {
-      // On mobile, just set active
-      setActiveCardIndex(index);
-    } else {
-      // On desktop, if already centered, navigate to profile
       if (index === activeCardIndex) {
         onCardClick(profile);
       } else {
-        // Bring to center first
         setActiveCardIndex(index);
         setIsInteracting(true);
         if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
-        interactionTimeout.current = setTimeout(() => {
-          setIsInteracting(false);
-        }, 5000); // Longer pause after click
+        interactionTimeout.current = setTimeout(() => setIsInteracting(false), 5000);
+      }
+    } else {
+      if (index === activeCardIndex || hoveredIndex === index) {
+        onCardClick(profile);
+      } else {
+        setActiveCardIndex(index);
+        setIsInteracting(true);
+        if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
+        interactionTimeout.current = setTimeout(() => setIsInteracting(false), 5000);
       }
     }
   };
 
-  // Card configuration - Zcash brand colors
-  // Primary: #F4B728 (yellow), #231F20 (black)
-  const cardColors = [
-    'bg-[#F4B728]', // Zcash yellow (primary)
-    'bg-[#1e5c3a]', // Forest green (for Encrypted James)
-    'bg-[#1a1a1a]', // near black
-    'bg-[#D4A020]', // darker gold
-    'bg-[#2d2d2d]', // charcoal
-    'bg-[#FFD54F]', // lighter yellow
+  if (featuredProfiles.length === 0) return null;
+
+  // Color variants for cards
+  const variants = [
+    "passport-stamp-name-crimson",
+    "passport-stamp-name-navy",
+    "passport-stamp-name-emerald",
+    "passport-stamp-name-gold",
+    "passport-stamp-name-purple",
+    "passport-stamp-name-ocean",
   ];
-  const patternTypes = ['lines', 'grid', 'waves', 'blocks', 'circles', 'dots'];
-  const shimmerSpeeds = ['', 'card-shimmer-fast', 'card-shimmer-slow', '', 'card-shimmer-fast', 'card-shimmer-slow'];
 
-  // Get card color - special case for specific profiles
-  const getCardColor = (profile, index) => {
-    // Encrypted James / Zechariah gets green
-    if (profile.display_name === 'Encrypted James' || profile.name === 'Zechariah') {
-      return 'bg-[#1e5c3a]';
-    }
-    return cardColors[index % cardColors.length];
+  // Calculate position relative to active card (sliding carousel)
+  const getSlidePosition = (index, total) => {
+    // Calculate offset from active card (can be negative)
+    let offset = index - activeCardIndex;
+
+    // Wrap around for continuous carousel effect
+    if (offset > total / 2) offset -= total;
+    if (offset < -total / 2) offset += total;
+
+    // Horizontal position - cards slide left/right
+    const xSpread = 220;
+    const translateX = offset * xSpread;
+
+    // Arc shape - cards away from center are lower
+    const arcDepth = 50;
+    const translateY = Math.abs(offset) * arcDepth;
+
+    // Rotation - fan effect, center card is straight
+    const maxRotation = 10;
+    const rotation = offset * maxRotation;
+
+    // Scale - center card is largest
+    const baseScale = 1;
+    const scaleReduction = 0.08;
+    const scale = Math.max(0.7, baseScale - Math.abs(offset) * scaleReduction);
+
+    // Z-index - center card on top
+    const zIndex = 10 - Math.abs(offset);
+
+    // Opacity - fade cards that are far from center
+    const opacity = Math.abs(offset) > 2 ? 0.3 : 1;
+
+    return { translateX, translateY, rotation, scale, zIndex, opacity, offset };
   };
 
-  // Dynamic spread with arc shape (cards curve upward in center)
-  const getLayoutConfig = (count) => {
-    if (count === 1) {
-      return { rotations: [0], offsets: [0], verticalOffsets: [0], zIndexes: [1] };
-    }
-    if (count === 2) {
-      return {
-        rotations: [-10, 10],
-        offsets: [-100, 100],
-        verticalOffsets: [20, 20], // edges lower
-        zIndexes: [1, 2],
-      };
-    }
-    if (count === 3) {
-      return {
-        rotations: [-12, 0, 12],
-        offsets: [-130, 0, 130],
-        verticalOffsets: [35, 0, 35], // center highest
-        zIndexes: [1, 3, 2],
-      };
-    }
-    if (count === 4) {
-      return {
-        rotations: [-14, -5, 5, 14],
-        offsets: [-150, -50, 50, 150],
-        verticalOffsets: [45, 15, 15, 45], // arc curve
-        zIndexes: [1, 2, 3, 2],
-      };
-    }
-    if (count === 5) {
-      return {
-        rotations: [-15, -8, 0, 8, 15],
-        offsets: [-170, -85, 0, 85, 170],
-        verticalOffsets: [55, 25, 0, 25, 55], // arc curve
-        zIndexes: [1, 2, 3, 3, 2],
-      };
-    }
-    // 6 or more - wide arc
-    return {
-      rotations: [-16, -10, -4, 4, 10, 16],
-      offsets: [-190, -114, -38, 38, 114, 190],
-      verticalOffsets: [65, 35, 10, 10, 35, 65], // arc curve
-      zIndexes: [1, 2, 3, 4, 3, 2],
-    };
+  // Mobile stacked layout with sliding
+  const getStackPosition = (index) => {
+    let diff = index - activeCardIndex;
+    const total = featuredProfiles.length;
+
+    // Wrap for continuous feel
+    if (diff > total / 2) diff -= total;
+    if (diff < -total / 2) diff += total;
+
+    const isActive = diff === 0;
+    const stackOffset = isActive ? 0 : Math.abs(diff) * 12;
+    const stackScale = isActive ? 1 : 0.92 - (Math.abs(diff) * 0.03);
+    const stackRotation = isActive ? 0 : (diff > 0 ? 3 : -3) * Math.min(Math.abs(diff), 2);
+    const opacity = isActive ? 1 : Math.max(0.4, 1 - (Math.abs(diff) * 0.2));
+    const zIndex = isActive ? 50 : (20 - Math.abs(diff));
+    const translateX = diff * 30; // Slight horizontal offset for stacked effect
+
+    return { stackOffset, stackScale, stackRotation, opacity, zIndex, translateX, isActive };
   };
-
-  const baseLayout = getLayoutConfig(reorderedProfiles.length);
-
-  // Desktop: Calculate position relative to active card (active card goes to center)
-  // This creates a shuffle effect where the spotlight card moves to center
-  const getDesktopPosition = (index) => {
-    const count = reorderedProfiles.length;
-    const centerIdx = Math.floor(count / 2);
-
-    // Calculate the visual position - shift so active card is at center
-    // relativePos: where this card should appear (0 = center, negative = left, positive = right)
-    const relativePos = index - activeCardIndex;
-    const visualIdx = centerIdx + relativePos;
-
-    // Wrap around for cards that go off the edges
-    const wrappedIdx = ((visualIdx % count) + count) % count;
-
-    return {
-      rotation: baseLayout.rotations[wrappedIdx] || 0,
-      offset: baseLayout.offsets[wrappedIdx] || 0,
-      verticalOffset: baseLayout.verticalOffsets[wrappedIdx] || 0,
-      zIndex: baseLayout.zIndexes[wrappedIdx] || 1,
-    };
-  };
-
-  // Reorder cards for mobile shuffle (active card on top)
-  // Creates a circular stack where active card is always on top (index 0)
-  // and others are layered behind in order
-  const getStackIndex = (index) => {
-    if (!isMobile) return index;
-    // Calculate position relative to active card
-    // Active card = 0, next card = 1, etc.
-    const diff = (index - activeCardIndex + reorderedProfiles.length) % reorderedProfiles.length;
-    return diff;
-  };
-
-  if (reorderedProfiles.length === 0) return null;
 
   return (
-    <div className="mb-16" style={{ overflowX: 'clip' }}>
-      {/* Featured Profiles heading - above the arc */}
-      <h2 className="text-center text-sm uppercase tracking-widest text-[#faf6ed]/40 mb-8 md:mb-12">
-        Featured Profiles
-      </h2>
+    <div className="mb-12 relative z-[50]" style={{ overflowX: 'clip' }}>
+      {/* Cards Container - Sliding carousel */}
+      <div
+        className="relative flex justify-center items-start pt-2"
+        style={{
+          height: isMobile ? '530px' : '550px',
+          overflowX: 'clip',
+        }}
+      >
+        {featuredProfiles.slice(0, 6).map((profile, index) => {
+          const isHovered = hoveredIndex === index;
 
-      {/* Cards Container - taller to accommodate arc shape */}
-      <div className="relative flex justify-center items-start h-[340px] md:h-[420px] pt-12 md:pt-16" style={{ overflowX: 'clip' }}>
-        {reorderedProfiles.map((profile, index) => {
-          const cardColor = getCardColor(profile, index);
-          const patternType = patternTypes[index % patternTypes.length];
-          // Light backgrounds (yellows) need dark text
-          const isLightBg = ['bg-[#F4B728]', 'bg-[#D4A020]', 'bg-[#FFD54F]'].includes(cardColor);
-          const textColor = isLightBg ? 'text-[#231F20]' : 'text-[#faf6ed]';
-          const textColorMuted = isLightBg ? 'text-[#231F20]/70' : 'text-[#faf6ed]/70';
-          const stackIndex = getStackIndex(index);
-          const isActive = isMobile && index === activeCardIndex;
+          if (isMobile) {
+            // Mobile: Stacked sliding cards
+            const { stackOffset, stackScale, stackRotation, opacity, zIndex, translateX, isActive } = getStackPosition(index);
 
-          // Desktop spotlight: highlight active card when not interacting
-          const isSpotlit = !isMobile && index === activeCardIndex;
+            return (
+              <div
+                key={profile.id ?? profile.address}
+                className="absolute cursor-pointer"
+                style={{
+                  left: '50%',
+                  top: '0',
+                  transform: `translateX(calc(-50% + ${translateX}px)) translateY(${stackOffset}px) scale(${stackScale}) rotate(${stackRotation}deg)`,
+                  zIndex,
+                  opacity,
+                  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                  width: '330px',
+                }}
+                onClick={() => handleCardClick(index, profile)}
+              >
+                <ProfileCardPassport
+                  profile={profile}
+                  variant={variants[index % variants.length]}
+                />
+              </div>
+            );
+          }
 
-          // Get dynamic position for desktop (shuffle to center)
-          const desktopPos = getDesktopPosition(index);
+          // Desktop: Sliding arc carousel
+          const { translateX, translateY, rotation, scale, zIndex, opacity, offset } = getSlidePosition(index, featuredProfiles.length);
+
+          // Hover effects
+          const isCenter = offset === 0;
+          const hoverLift = isHovered ? -25 : 0;
+          const hoverScale = isHovered ? scale * 1.08 : scale;
+          const hoverRotation = isHovered ? 0 : rotation;
 
           return (
-            <FannedCard
+            <div
               key={profile.id ?? profile.address}
-              profile={profile}
-              cardColor={cardColor}
-              patternType={patternType}
-              rotation={desktopPos.rotation}
-              offset={desktopPos.offset}
-              verticalOffset={desktopPos.verticalOffset}
-              zIndex={desktopPos.zIndex}
-              textColor={textColor}
-              textColorMuted={textColorMuted}
-              isMobile={isMobile}
-              isActive={isActive}
-              stackIndex={stackIndex}
-              isSpotlit={isSpotlit}
-              shimmerSpeed={shimmerSpeeds[index % shimmerSpeeds.length]}
-              onInteractionStart={handleHoverStart}
-              onInteractionEnd={handleHoverEnd}
+              className="absolute cursor-pointer"
+              style={{
+                transform: `translateX(${translateX}px) translateY(${translateY + hoverLift}px) rotate(${hoverRotation}deg) scale(${hoverScale})`,
+                zIndex: isHovered ? 100 : zIndex,
+                opacity,
+                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                width: '310px',
+                top: '0',
+                filter: isCenter || isHovered ? 'none' : 'brightness(0.85)',
+              }}
+              onMouseEnter={() => handleHoverStart(index)}
+              onMouseLeave={handleHoverEnd}
               onClick={() => handleCardClick(index, profile)}
-            />
+            >
+              <ProfileCardPassport
+                profile={profile}
+                variant={variants[index % variants.length]}
+              />
+            </div>
           );
         })}
       </div>
 
-      {/* Mobile card indicators */}
-      {isMobile && reorderedProfiles.length > 1 && (
+      {/* Navigation dots */}
+      {featuredProfiles.length > 1 && (
         <div className="flex justify-center gap-2 mt-4">
-          {reorderedProfiles.map((_, index) => (
+          {featuredProfiles.slice(0, 6).map((_, index) => (
             <button
               key={index}
-              onClick={() => setActiveCardIndex(index)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              onClick={() => {
+                setActiveCardIndex(index);
+                setIsInteracting(true);
+                if (interactionTimeout.current) clearTimeout(interactionTimeout.current);
+                interactionTimeout.current = setTimeout(() => setIsInteracting(false), 5000);
+              }}
+              className={`rounded-full transition-all duration-300 ${
                 index === activeCardIndex
-                  ? 'bg-[#f5c542] w-6'
-                  : 'bg-[#faf6ed]/30'
+                  ? 'w-6 h-2 bg-[#f5c542]'
+                  : 'w-2 h-2 bg-white/30 hover:bg-white/50'
               }`}
             />
           ))}
         </div>
       )}
+
+      {/* Section heading - below cards */}
+      <h2 className="text-center text-xs uppercase tracking-[0.2em] text-[#faf6ed]/30 font-medium mt-6">
+        Featured
+      </h2>
     </div>
   );
 }
@@ -1251,7 +645,7 @@ export default function Directory({
           {/* Search Bar - Sticky on scroll - Works on both mobile and desktop */}
           <div
             ref={searchBarRef}
-            className={`sticky top-0 z-[100] py-3 md:py-4 px-4 md:px-0 transition-all duration-500 ease-out ${
+            className={`sticky top-0 z-[200] py-3 md:py-4 px-4 md:px-0 transition-all duration-500 ease-out ${
               isSearchBarFixed
                 ? 'bg-[#0d0d0d]/95 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] border-b border-[#faf6ed]/10'
                 : 'bg-[#0d0d0d] shadow-none border-b border-transparent'
@@ -1293,8 +687,8 @@ export default function Directory({
                                   const slug = buildSlug(exactMatch);
                                   if (slug) router.push(`/${slug}`);
                                 } else {
-                                  // Claim username
-                                  setIsJoinOpen(true);
+                                  // Claim username - redirect to onboarding
+                                  router.push(`/onboarding?username=${encodeURIComponent(search)}`);
                                 }
                               }
                             }}
@@ -1323,7 +717,7 @@ export default function Directory({
                         </button>
                       ) : (
                         <button
-                          onClick={() => setIsJoinOpen(true)}
+                          onClick={() => router.push(`/onboarding?username=${encodeURIComponent(search)}`)}
                           className={`ml-2 md:ml-3 p-2 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-colors whitespace-nowrap shrink-0 flex items-center gap-1 ${
                             isAvailable
                               ? 'bg-[#22c55e] text-white hover:bg-[#16a34a]'
@@ -1362,7 +756,7 @@ export default function Directory({
                                 setSearch(v);
                               }
                             }}
-                            onClaimClick={() => setIsJoinOpen(true)}
+                            onClaimClick={(claimName) => router.push(`/onboarding?username=${encodeURIComponent(claimName || search)}`)}
                             profiles={profiles}
                             placeholder="search"
                           />

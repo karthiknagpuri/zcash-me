@@ -1,9 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { User, Link2, MapPin, Shield, CheckCircle2, Check, ExternalLink, Loader2 } from 'lucide-react';
 import { motion, useMotionTemplate, useMotionValue, useSpring } from 'framer-motion';
 import { getAuthProviderForUrl, startOAuthVerification } from '../utils/linkAuthFlow';
 
 const ZcasherOnboarding = () => {
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
@@ -33,6 +35,14 @@ const ZcasherOnboarding = () => {
 
   const [errors, setErrors] = useState({});
   const totalSteps = 5;
+
+  // Read username from URL params and pre-fill
+  useEffect(() => {
+    const username = searchParams.get('username');
+    if (username) {
+      setFormData(prev => ({ ...prev, name: username }));
+    }
+  }, [searchParams]);
 
   const calculateProgress = () => {
     const fields = [

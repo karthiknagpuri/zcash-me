@@ -791,7 +791,7 @@ export default function SplashPage({ initialProfiles = null }) {
                             {/* Claim Row */}
                             {showClaimRow && (
                                 <div
-                                    onClick={() => router.push(`/?search=${encodeURIComponent(q)}&autoOpenAdd=1`)}
+                                    onClick={() => router.push(`/onboarding?username=${encodeURIComponent(q.replace(/\s+/g, '_'))}`)}
                                     className="group/item px-6 py-4 flex items-center justify-between hover:bg-pink-50/50 cursor-pointer transition-colors border-b-2 border-pink-100"
                                 >
                                     <div className="flex items-center gap-4">
