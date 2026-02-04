@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { User, Link2, MapPin, Shield, CheckCircle2, Check } from 'lucide-react';
+import { User, Link2, MapPin, Shield, CheckCircle2, Check, ExternalLink, Loader2 } from 'lucide-react';
 import { motion, useMotionTemplate, useMotionValue, useSpring } from 'framer-motion';
-import DelicateAsciiDots from './ui/delicate-ascii-dots';
-import BlinkingAsciiDots from './ui/blinking-ascii-dots';
+import { getAuthProviderForUrl, startOAuthVerification } from '../utils/linkAuthFlow';
 
 const ZcasherOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -15,31 +14,21 @@ const ZcasherOnboarding = () => {
     verificationCode: '',
     mainFocus: 'Privacy Advocate',
     profile_image_url: '',
+    fetchedAvatars: [], // Store fetched profile pictures from social platforms
     nearest_city_name: '',
     nearest_city_id: null,
     referred_by: '',
     referred_by_zcasher_id: null,
     activityRange: 'Just starting',
     socialLinks: [],
-    cardTheme: 'burgundy'
+    cardTheme: 'passport-stamp-name'
   });
 
   const cardThemes = [
-    { id: 'burgundy', name: 'Burgundy', type: 'solid', bg: '#4a1c2e', accent: '#f5c542' },
-    { id: 'ocean', name: 'Ocean', type: 'mesh', bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)' },
-    { id: 'sunset', name: 'Sunset', type: 'mesh', bg: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
-    { id: 'aurora', name: 'Aurora', type: 'mesh', bg: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #d299c2 100%)' },
-    { id: 'midnight', name: 'Midnight', type: 'mesh', bg: 'linear-gradient(135deg, #0c0c1e 0%, #1a1a3e 50%, #2d1b4e 100%)' },
-    { id: 'forest', name: 'Forest', type: 'mesh', bg: 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)' },
-    { id: 'coral', name: 'Coral', type: 'mesh', bg: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%)' },
-    { id: 'nebula', name: 'Nebula', type: 'mesh', bg: 'linear-gradient(135deg, #1a0533 0%, #4a1942 30%, #7b2d5b 60%, #1a0533 100%)' },
-    { id: 'arctic', name: 'Arctic', type: 'mesh', bg: 'linear-gradient(135deg, #e0eafc 0%, #cfdef3 50%, #a8c0ff 100%)' },
-    { id: 'ember', name: 'Ember', type: 'mesh', bg: 'linear-gradient(135deg, #f12711 0%, #f5af19 100%)' },
-    { id: 'lavender', name: 'Lavender', type: 'mesh', bg: 'linear-gradient(135deg, #c471f5 0%, #fa71cd 100%)' },
-    { id: 'cyberpunk', name: 'Cyberpunk', type: 'mesh', bg: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)' },
-    { id: 'ascii-waves', name: 'Waves', type: 'ascii', pattern: 'waves', bg: '#16213e' },
-    { id: 'ascii-delicate', name: 'Delicate', type: 'ascii-interactive', bg: '#1a1a2e', textColor: '139, 92, 246' },
-    { id: 'ascii-blink', name: 'Blink', type: 'ascii-blink', bg: '#0f0f1a', textColor: '34, 211, 238' },
+    { id: 'passport-stamp-name', name: 'Burgundy', bg: '#7c2d3a', isLight: false },
+    { id: 'passport-stamp-name-black', name: 'Black', bg: '#1a1a1a', isLight: false },
+    { id: 'passport-stamp-name-white', name: 'White', bg: '#fafafa', isLight: true },
+    { id: 'passport-stamp-name-yellow', name: 'Yellow', bg: '#f5c542', isLight: true },
   ];
 
   const [errors, setErrors] = useState({});
@@ -143,8 +132,8 @@ const ZcasherOnboarding = () => {
   };
 
   const getGreeting = () => {
-    if (formData.display_name) return `Welcome, ${formData.display_name}`;
-    if (formData.name) return `Welcome, ${formData.name}`;
+    if (formData.display_name) return `Welcome to Zcash, ${formData.display_name}`;
+    if (formData.name) return `Welcome to Zcash, ${formData.name}`;
     return 'Welcome to Zcash';
   };
 
@@ -175,7 +164,7 @@ const ZcasherOnboarding = () => {
                     {currentStep === 4 && "Review and confirm"}
                   </h1>
                   <p className="text-[15px] text-[#86868b] mt-1 leading-relaxed">
-                    {currentStep === 0 && "How do you plan to use Zcash.me? We'll personalize your experience."}
+                    {currentStep === 0 && "Create your profile to start receiving ZEC."}
                     {currentStep === 1 && "Verify your Zcash address to prove ownership."}
                     {currentStep === 2 && "Add and authenticate your social accounts."}
                     {currentStep === 3 && "Add final details to complete your profile."}
@@ -184,7 +173,7 @@ const ZcasherOnboarding = () => {
                 </div>
 
                 {/* Step Content */}
-                <div className="flex-1 overflow-y-auto min-h-0 px-1 -mx-1">
+                <div className="flex-1 overflow-y-auto min-h-0 px-3 -mx-3">
                   {currentStep === 0 && <Step1 formData={formData} updateField={updateField} focusOptions={focusOptions} revenueRanges={revenueRanges} cardThemes={cardThemes} />}
                   {currentStep === 1 && <Step2 formData={formData} updateField={updateField} />}
                   {currentStep === 2 && <Step3 formData={formData} updateField={updateField} socialPlatforms={socialPlatforms} addSocialLink={addSocialLink} updateSocialLink={updateSocialLink} removeSocialLink={removeSocialLink} />}
@@ -245,59 +234,54 @@ const ZcasherOnboarding = () => {
 
 // Step 1: Main Focus
 const Step1 = ({ formData, updateField, focusOptions, revenueRanges, cardThemes }) => {
-  // Generate ASCII pattern for theme preview
-  const getAsciiPattern = (pattern) => {
-    switch (pattern) {
-      case 'matrix':
-        return '01001 10110 01101';
-      case 'dots':
-        return '• • • • • • •';
-      case 'waves':
-        return '~ ~ ~ ~ ~';
-      default:
-        return '';
-    }
-  };
-
   return (
     <div className="space-y-4">
-      {/* Username */}
-      <div>
-        <label className="text-[12px] font-medium text-[#86868b] uppercase tracking-wide mb-2 block">
-          Username
-        </label>
-        <div className="flex items-center bg-[#f5f5f7] rounded-xl focus-within:ring-2 focus-within:ring-[#0071e3] focus-within:bg-white transition-all">
-          <span className="pl-4 pr-1 py-3 text-[#1d1d1f] text-[14px] font-medium select-none">
-            zcash.me/
-          </span>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => updateField('name', e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
-            placeholder="username"
-            className="flex-1 pr-4 py-3 bg-transparent border-0 text-[14px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none"
-          />
+      {/* Username & Display Name - Side by Side */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Username */}
+        <div>
+          <label className="text-[12px] font-medium text-[#86868b] uppercase tracking-wide mb-2 block">
+            Username
+          </label>
+          <div className="flex items-center bg-[#f5f5f7] rounded-xl border-2 border-transparent focus-within:border-[#0071e3] focus-within:bg-white transition-all">
+            <span className="pl-3 pr-0.5 py-2.5 text-[#86868b] text-[12px] font-medium select-none whitespace-nowrap">
+              zcash.me/
+            </span>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => updateField('name', e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+              placeholder="username"
+              className="flex-1 pr-2 py-2.5 bg-transparent border-0 text-[13px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none min-w-0"
+            />
+            {formData.name && (
+              <div className="pr-2">
+                <CheckCircle2 className="w-4 h-4 text-[#1b5e20]" />
+              </div>
+            )}
+          </div>
         </div>
-        <p className="text-[11px] text-[#86868b] mt-1.5 flex items-center gap-1">
-          <span className="text-[#0071e3]">Tip:</span> This will be your unique profile URL that others can use to send you ZEC
-        </p>
-      </div>
 
-      {/* Display Name */}
-      <div>
-        <label className="text-[12px] font-medium text-[#86868b] uppercase tracking-wide mb-2 block">
-          Display name
-        </label>
-        <input
-          type="text"
-          value={formData.display_name}
-          onChange={(e) => updateField('display_name', e.target.value)}
-          placeholder="Your name"
-          className="w-full px-4 py-3 bg-[#f5f5f7] border-0 rounded-xl text-[14px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3] focus:bg-white transition-all"
-        />
-        <p className="text-[11px] text-[#86868b] mt-1.5 flex items-center gap-1">
-          <span className="text-[#0071e3]">Tip:</span> How you want to be known on your profile
-        </p>
+        {/* Display Name */}
+        <div>
+          <label className="text-[12px] font-medium text-[#86868b] uppercase tracking-wide mb-2 block">
+            Display name
+          </label>
+          <div className="flex items-center bg-[#f5f5f7] rounded-xl border-2 border-transparent focus-within:border-[#0071e3] focus-within:bg-white transition-all">
+            <input
+              type="text"
+              value={formData.display_name}
+              onChange={(e) => updateField('display_name', e.target.value)}
+              placeholder="Your name"
+              className="flex-1 px-3 py-2.5 bg-transparent border-0 text-[13px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none min-w-0"
+            />
+            {formData.display_name && (
+              <div className="pr-2">
+                <CheckCircle2 className="w-4 h-4 text-[#1b5e20]" />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Card Theme */}
@@ -305,57 +289,49 @@ const Step1 = ({ formData, updateField, focusOptions, revenueRanges, cardThemes 
         <label className="text-[12px] font-medium text-[#86868b] uppercase tracking-wide mb-2 block">
           Card Style
         </label>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {cardThemes.map((theme) => (
             <button
               key={theme.id}
               onClick={() => updateField('cardTheme', theme.id)}
-              className={`relative w-10 h-10 rounded-full overflow-hidden transition-all duration-200 ${
+              className={`relative w-16 h-20 rounded-lg overflow-hidden transition-all duration-200 border-2 ${
                 formData.cardTheme === theme.id
-                  ? 'ring-2 ring-[#0071e3] ring-offset-2 scale-110'
-                  : 'hover:scale-105 hover:ring-1 hover:ring-[#d2d2d7]'
+                  ? 'border-[#0071e3] scale-105'
+                  : 'border-transparent hover:scale-105 hover:border-[#d2d2d7]'
               }`}
               title={theme.name}
             >
-              {theme.type === 'ascii' || theme.type === 'ascii-interactive' || theme.type === 'ascii-blink' ? (
-                <div
-                  className="w-full h-full flex items-center justify-center"
-                  style={{ backgroundColor: theme.bg }}
-                >
-                  <span
-                    className="text-[6px] font-mono opacity-80"
-                    style={{
-                      color: theme.type === 'ascii-interactive' ? '#8b5cf6' :
-                             theme.type === 'ascii-blink' ? '#22d3ee' : '#22c55e'
-                    }}
-                  >
-                    {theme.type === 'ascii-interactive' ? '⣿⣿' :
-                     theme.type === 'ascii-blink' ? '⠿⠿' : '~~'}
-                  </span>
-                </div>
-              ) : theme.type === 'mesh' ? (
-                <div
-                  className="w-full h-full"
-                  style={{ background: theme.bg }}
-                />
-              ) : (
-                <div
-                  className="w-full h-full"
-                  style={{ backgroundColor: theme.bg }}
-                />
-              )}
-              {formData.cardTheme === theme.id && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <svg className="w-4 h-4 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Mini card preview */}
+              <div
+                className="w-full h-full flex flex-col items-center justify-center p-1.5"
+                style={{ backgroundColor: theme.bg }}
+              >
+                {/* Mini passport stamp */}
+                <div className={`w-6 h-6 rounded-full border border-dashed ${theme.isLight ? 'border-emerald-600' : 'border-emerald-400'} flex items-center justify-center mb-1`}>
+                  <svg className={`w-3 h-3 ${theme.isLight ? 'text-emerald-600' : 'text-emerald-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
+                </div>
+                {/* Mini avatar placeholder */}
+                <div className={`w-4 h-4 rounded-full ${theme.isLight ? 'bg-gray-300' : 'bg-white/20'} mb-1`} />
+                {/* Mini text lines */}
+                <div className={`w-8 h-1 rounded ${theme.isLight ? 'bg-gray-400' : 'bg-white/30'} mb-0.5`} />
+                <div className={`w-6 h-0.5 rounded ${theme.isLight ? 'bg-gray-300' : 'bg-white/20'}`} />
+              </div>
+              {formData.cardTheme === theme.id && (
+                <div className={`absolute inset-0 flex items-center justify-center ${theme.isLight ? 'bg-black/10' : 'bg-black/30'}`}>
+                  <div className="w-5 h-5 rounded-full bg-[#0071e3] flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
                 </div>
               )}
             </button>
           ))}
         </div>
         <p className="text-[11px] text-[#86868b] mt-1.5 flex items-center gap-1">
-          <span className="text-[#0071e3]">Tip:</span> Choose a style that represents you - gradients or ASCII art
+          <svg className="w-3.5 h-3.5 text-[#0071e3] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg> Choose a passport card style that represents you
         </p>
       </div>
 
@@ -368,7 +344,7 @@ const Step1 = ({ formData, updateField, focusOptions, revenueRanges, cardThemes 
           <select
             value={formData.activityRange}
             onChange={(e) => updateField('activityRange', e.target.value)}
-            className="w-full px-3 py-3 bg-[#f5f5f7] border-0 rounded-xl text-[13px] text-[#1d1d1f] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0071e3] focus:bg-white transition-all appearance-none"
+            className="w-full px-3 py-3 bg-[#f5f5f7] border-2 border-transparent rounded-xl text-[13px] text-[#1d1d1f] cursor-pointer focus:outline-none focus:border-[#0071e3] focus:bg-white transition-all appearance-none"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2386868b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '16px' }}
           >
             {revenueRanges.map((range) => (
@@ -390,7 +366,7 @@ const Step1 = ({ formData, updateField, focusOptions, revenueRanges, cardThemes 
               value={formData.referred_by}
               onChange={(e) => updateField('referred_by', e.target.value)}
               placeholder="Username"
-              className="w-full pl-9 pr-3 py-3 bg-[#f5f5f7] border-0 rounded-xl text-[13px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3] focus:bg-white transition-all"
+              className="w-full pl-9 pr-3 py-3 bg-[#f5f5f7] border-2 border-transparent rounded-xl text-[13px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0071e3] focus:bg-white transition-all"
             />
           </div>
         </div>
@@ -420,7 +396,7 @@ const Step1 = ({ formData, updateField, focusOptions, revenueRanges, cardThemes 
           ))}
         </div>
         <p className="text-[11px] text-[#86868b] mt-1.5 flex items-center gap-1">
-          <span className="text-[#0071e3]">Tip:</span> Select what best describes your primary interest in Zcash
+          <svg className="w-3.5 h-3.5 text-[#0071e3] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg> Select what best describes your primary interest in Zcash
         </p>
       </div>
     </div>
@@ -444,14 +420,14 @@ const Step2 = ({ formData, updateField }) => {
           onChange={(e) => updateField('address', e.target.value)}
           placeholder="u1..."
           disabled={formData.addressVerified}
-          className={`w-full px-4 py-3 border-0 rounded-xl text-[14px] font-mono placeholder:text-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3] transition-all ${
+          className={`w-full px-4 py-3 border-2 border-transparent rounded-xl text-[14px] font-mono placeholder:text-[#86868b] focus:outline-none focus:border-[#0071e3] transition-all ${
             formData.addressVerified
               ? 'bg-[#e8f5e9] text-[#1b5e20]'
               : 'bg-[#f5f5f7] text-[#1d1d1f] focus:bg-white'
           }`}
         />
         <p className="text-[11px] text-[#86868b] mt-1.5 flex items-center gap-1">
-          <span className="text-[#0071e3]">Tip:</span> Enter your unified address (starts with u1) to receive payments
+          <svg className="w-3.5 h-3.5 text-[#0071e3] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg> Enter your unified address (starts with u1) to receive payments
         </p>
       </div>
 
@@ -484,7 +460,7 @@ const Step2 = ({ formData, updateField }) => {
                 value={formData.verificationCode}
                 onChange={(e) => updateField('verificationCode', e.target.value)}
                 placeholder="Enter 6-digit code"
-                className="w-full px-4 py-2.5 bg-white border-0 rounded-lg text-[14px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3] transition-all"
+                className="w-full px-4 py-2.5 bg-white border-2 border-transparent rounded-lg text-[14px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0071e3] transition-all"
               />
               <button
                 onClick={() => {
@@ -525,14 +501,14 @@ const Step2 = ({ formData, updateField }) => {
             placeholder="Tell us about yourself..."
             rows={2}
             maxLength={100}
-            className="w-full px-4 py-3 bg-[#f5f5f7] border-0 rounded-xl text-[14px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3] focus:bg-white transition-all resize-none"
+            className="w-full px-4 py-3 bg-[#f5f5f7] border-2 border-transparent rounded-xl text-[14px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0071e3] focus:bg-white transition-all resize-none"
           />
           <span className="absolute bottom-2 right-3 text-[11px] text-[#86868b] tabular-nums">
             {formData.bio.length}/100
           </span>
         </div>
         <p className="text-[11px] text-[#86868b] mt-1.5 flex items-center gap-1">
-          <span className="text-[#0071e3]">Tip:</span> A short bio helps others know who you are
+          <svg className="w-3.5 h-3.5 text-[#0071e3] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg> A short bio helps others know who you are
         </p>
       </div>
     </div>
@@ -541,96 +517,302 @@ const Step2 = ({ formData, updateField }) => {
 
 // Step 3: Social Links
 const Step3 = ({ formData, updateField, socialPlatforms, addSocialLink, updateSocialLink, removeSocialLink }) => {
-  // Filter out 'Other' from main platforms list
-  const mainPlatforms = socialPlatforms.filter(p => p.value !== 'Other');
+  const [selectedPlatform, setSelectedPlatform] = useState('');
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [authenticatingId, setAuthenticatingId] = useState(null);
+  const [showRedirect, setShowRedirect] = useState(false);
+  const [redirectLabel, setRedirectLabel] = useState('');
 
-  // Get or create social link for a platform
-  const getSocialLink = (platformValue) => {
-    return formData.socialLinks.find(link => link.platform === platformValue);
+  // Platforms that support OAuth authentication
+  const oauthPlatforms = ['X', 'GitHub', 'LinkedIn', 'Discord'];
+
+  // Get platforms not yet added
+  const availablePlatforms = socialPlatforms.filter(
+    p => !formData.socialLinks.find(link => link.platform === p.value)
+  );
+
+  const handleAddPlatform = () => {
+    if (!selectedPlatform) return;
+    const platform = socialPlatforms.find(p => p.value === selectedPlatform);
+    const newLink = {
+      id: Date.now(),
+      platform: selectedPlatform,
+      handle: '',
+      authenticated: false,
+      order_index: formData.socialLinks.length,
+      urlPattern: platform?.urlPattern || ''
+    };
+    updateField('socialLinks', [...formData.socialLinks, newLink]);
+    setSelectedPlatform('');
   };
 
-  const handlePlatformInput = (platform, handle) => {
-    const existingLink = getSocialLink(platform.value);
-    if (existingLink) {
-      if (handle) {
-        updateSocialLink(existingLink.id, 'handle', handle);
-      } else {
-        removeSocialLink(existingLink.id);
-      }
-    } else if (handle) {
-      // Create new link for this platform
-      const newLink = {
-        id: Date.now(),
-        platform: platform.value,
-        handle: handle,
-        authenticated: false,
-        order_index: formData.socialLinks.length
-      };
-      updateField('socialLinks', [...formData.socialLinks, newLink]);
+  // Get profile picture URL for different platforms
+  const getProfilePictureUrl = (platform, handle) => {
+    switch (platform) {
+      case 'GitHub':
+        return `https://github.com/${handle}.png`;
+      case 'X':
+        // Twitter/X doesn't have a public avatar API, use unavatar.io as fallback
+        return `https://unavatar.io/twitter/${handle}`;
+      case 'Instagram':
+        return `https://unavatar.io/instagram/${handle}`;
+      case 'LinkedIn':
+        return `https://unavatar.io/linkedin/${handle}`;
+      case 'Discord':
+        return null; // Discord requires API access
+      case 'TikTok':
+        return `https://unavatar.io/tiktok/${handle}`;
+      case 'Reddit':
+        return `https://unavatar.io/reddit/${handle}`;
+      case 'Mastodon':
+        return `https://unavatar.io/mastodon/${handle}`;
+      case 'Bluesky':
+        return `https://unavatar.io/${handle}.bsky.social`;
+      default:
+        return null;
     }
   };
 
-  // Custom URLs (platform === 'Other')
-  const customLinks = formData.socialLinks.filter(link => link.platform === 'Other');
+  const handleAuthenticate = async (link) => {
+    if (!link.handle) {
+      alert('Please enter your username first');
+      return;
+    }
 
-  const addCustomUrl = () => {
-    const newLink = {
-      id: Date.now(),
-      platform: 'Other',
-      handle: '',
-      customUrl: '',
-      authenticated: false,
-      order_index: formData.socialLinks.length
-    };
-    updateField('socialLinks', [...formData.socialLinks, newLink]);
+    setAuthenticatingId(link.id);
+
+    // Get profile picture URL
+    const pfpUrl = getProfilePictureUrl(link.platform, link.handle);
+
+    // Build profile URL
+    const platform = socialPlatforms.find(p => p.value === link.platform);
+    const profileUrl = platform?.urlPattern
+      ? `https://${platform.urlPattern}${link.handle}`
+      : link.handle;
+
+    // Simulate verification delay
+    setTimeout(() => {
+      // Mark as authenticated
+      updateSocialLink(link.id, 'authenticated', true);
+      updateSocialLink(link.id, 'profileUrl', profileUrl);
+
+      // Add fetched avatar to the list if available
+      if (pfpUrl) {
+        updateSocialLink(link.id, 'avatarUrl', pfpUrl);
+
+        // Add to fetchedAvatars if not already there
+        const existingAvatars = formData.fetchedAvatars || [];
+        const alreadyExists = existingAvatars.some(a => a.url === pfpUrl);
+        if (!alreadyExists) {
+          updateField('fetchedAvatars', [
+            ...existingAvatars,
+            { platform: link.platform, handle: link.handle, url: pfpUrl }
+          ]);
+        }
+      }
+
+      setAuthenticatingId(null);
+    }, 800);
+  };
+
+  const handleDragStart = (index) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newLinks = [...formData.socialLinks];
+    const draggedItem = newLinks[draggedIndex];
+    newLinks.splice(draggedIndex, 1);
+    newLinks.splice(index, 0, draggedItem);
+
+    // Update order_index for all items
+    newLinks.forEach((link, i) => {
+      link.order_index = i;
+    });
+
+    updateField('socialLinks', newLinks);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
+  const moveLink = (index, direction) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= formData.socialLinks.length) return;
+
+    const newLinks = [...formData.socialLinks];
+    const temp = newLinks[index];
+    newLinks[index] = newLinks[newIndex];
+    newLinks[newIndex] = temp;
+
+    // Update order_index
+    newLinks.forEach((link, i) => {
+      link.order_index = i;
+    });
+
+    updateField('socialLinks', newLinks);
+  };
+
+  const getPlatformLabel = (platformValue) => {
+    const platform = socialPlatforms.find(p => p.value === platformValue);
+    return platform?.label || platformValue;
+  };
+
+  const canAuthenticate = (platform) => {
+    return oauthPlatforms.includes(platform);
   };
 
   return (
-    <div className="space-y-3">
-      {/* Platform inputs */}
-      <div className="grid grid-cols-2 gap-2">
-        {mainPlatforms.map((platform) => {
-          const link = getSocialLink(platform.value);
-          return (
-            <div key={platform.value} className="relative">
-              <div className="flex items-center bg-[#f5f5f7] rounded-lg focus-within:ring-2 focus-within:ring-[#0071e3] focus-within:bg-white transition-all">
-                <span className="pl-3 pr-1 py-2.5 text-[#86868b] text-[12px] font-medium select-none whitespace-nowrap">
-                  {platform.urlPattern || platform.label}
-                </span>
-                <input
-                  type="text"
-                  value={link?.handle || ''}
-                  onChange={(e) => handlePlatformInput(platform, e.target.value)}
-                  placeholder="username"
-                  className="flex-1 pr-3 py-2.5 bg-transparent border-0 text-[13px] text-[#1d1d1f] placeholder:text-[#c7c7c7] focus:outline-none min-w-0"
-                />
-                {link?.authenticated && (
-                  <CheckCircle2 className="w-4 h-4 text-[#1b5e20] mr-2 flex-shrink-0" />
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+    <div className="space-y-4">
+      {/* Redirect Modal */}
+      {showRedirect && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-sm mx-4 text-center">
+            <Loader2 className="w-8 h-8 text-[#0071e3] animate-spin mx-auto mb-4" />
+            <h3 className="text-[16px] font-semibold text-[#1d1d1f] mb-2">
+              Redirecting to {redirectLabel}
+            </h3>
+            <p className="text-[13px] text-[#86868b]">
+              You'll be redirected to verify your account...
+            </p>
+          </div>
+        </div>
+      )}
 
-      {/* Custom URLs */}
-      {customLinks.length > 0 && (
-        <div className="space-y-2 pt-2">
+      {/* Add Platform Dropdown */}
+      <div className="flex gap-2 p-0.5 -m-0.5">
+        <select
+          value={selectedPlatform}
+          onChange={(e) => setSelectedPlatform(e.target.value)}
+          className="flex-1 px-3 py-2.5 bg-[#f5f5f7] border-2 border-transparent rounded-xl text-[13px] text-[#1d1d1f] cursor-pointer focus:outline-none focus:border-[#0071e3] focus:bg-white transition-all appearance-none"
+          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2386868b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', backgroundSize: '16px' }}
+        >
+          <option value="">Select a platform...</option>
+          {availablePlatforms.map((platform) => (
+            <option key={platform.value} value={platform.value}>
+              {platform.label}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={handleAddPlatform}
+          disabled={!selectedPlatform}
+          className="px-4 py-2.5 bg-[#1d1d1f] text-white text-[13px] font-medium rounded-xl hover:bg-[#424245] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Add
+        </button>
+      </div>
+      <p className="text-[11px] text-[#86868b] flex items-center gap-1 mt-1 ml-0.5">
+        <svg className="w-3.5 h-3.5 text-[#0071e3] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg> Verify with OAuth (X, GitHub, LinkedIn, Discord). Drag to reorder.
+      </p>
+
+      {/* Added Links List */}
+      {formData.socialLinks.length > 0 && (
+        <div className="space-y-2">
           <label className="text-[11px] font-medium text-[#86868b] uppercase tracking-wide">
-            Custom URLs
+            Your links ({formData.socialLinks.length})
           </label>
-          {customLinks.map((link) => (
-            <div key={link.id} className="flex gap-2">
-              <input
-                type="url"
-                value={link.handle || ''}
-                onChange={(e) => updateSocialLink(link.id, 'handle', e.target.value)}
-                placeholder="https://example.com/profile"
-                className="flex-1 px-3 py-2.5 bg-[#f5f5f7] border-0 rounded-lg text-[13px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3] focus:bg-white transition-all"
-              />
+          {formData.socialLinks.map((link, index) => (
+            <div
+              key={link.id}
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              className={`flex items-center gap-2 p-2 bg-[#f5f5f7] rounded-xl transition-all ${
+                draggedIndex === index ? 'opacity-50 scale-[0.98]' : ''
+              }`}
+            >
+              {/* Drag Handle */}
+              <div className="cursor-grab active:cursor-grabbing p-1 text-[#86868b] hover:text-[#1d1d1f]">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                </svg>
+              </div>
+
+              {/* Reorder Buttons */}
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => moveLink(index, -1)}
+                  disabled={index === 0}
+                  className="p-0.5 text-[#86868b] hover:text-[#1d1d1f] disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => moveLink(index, 1)}
+                  disabled={index === formData.socialLinks.length - 1}
+                  className="p-0.5 text-[#86868b] hover:text-[#1d1d1f] disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Avatar + Platform Label */}
+              <div className="flex items-center gap-1.5 min-w-[80px]">
+                {link.authenticated && link.avatarUrl && (
+                  <img
+                    src={link.avatarUrl}
+                    alt={`${link.platform} avatar`}
+                    className="w-6 h-6 rounded-full object-cover border border-[#e8e8ed]"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                )}
+                <span className="text-[12px] font-medium text-[#1d1d1f]">
+                  {getPlatformLabel(link.platform)}
+                </span>
+              </div>
+
+              {/* Input */}
+              <div className="flex-1 flex items-center bg-white rounded-lg border border-[#e8e8ed] focus-within:border-[#0071e3]">
+                {link.platform !== 'Other' && (
+                  <span className="pl-2 text-[#86868b] text-[11px]">/</span>
+                )}
+                <input
+                  type={link.platform === 'Other' ? 'url' : 'text'}
+                  value={link.handle || ''}
+                  onChange={(e) => updateSocialLink(link.id, 'handle', e.target.value)}
+                  placeholder={link.platform === 'Other' ? 'https://...' : 'username'}
+                  className="flex-1 px-2 py-1.5 bg-transparent border-0 text-[13px] text-[#1d1d1f] placeholder:text-[#c7c7c7] focus:outline-none"
+                />
+              </div>
+
+              {/* Authenticate Button */}
+              {link.authenticated ? (
+                <div className="flex items-center gap-1 px-2 py-1 bg-[#e8f5e9] rounded-lg">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#1b5e20]" />
+                  <span className="text-[10px] font-medium text-[#1b5e20]">Verified</span>
+                </div>
+              ) : canAuthenticate(link.platform) ? (
+                <button
+                  onClick={() => handleAuthenticate(link)}
+                  disabled={!link.handle || authenticatingId === link.id}
+                  className="flex items-center gap-1 px-2 py-1 bg-[#0071e3] text-white rounded-lg text-[10px] font-medium hover:bg-[#0077ed] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {authenticatingId === link.id ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <ExternalLink className="w-3 h-3" />
+                  )}
+                  <span>Verify</span>
+                </button>
+              ) : (
+                <span className="text-[10px] text-[#86868b] px-2">No OAuth</span>
+              )}
+
+              {/* Delete Button */}
               <button
                 onClick={() => removeSocialLink(link.id)}
-                className="p-2 text-[#86868b] hover:text-[#ff3b30] hover:bg-[#ffebee] rounded-lg transition-all"
+                className="p-1.5 text-[#86868b] hover:text-[#ff3b30] hover:bg-[#ffebee] rounded-lg transition-all"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
@@ -641,36 +823,23 @@ const Step3 = ({ formData, updateField, socialPlatforms, addSocialLink, updateSo
         </div>
       )}
 
-      <button
-        onClick={addCustomUrl}
-        className="w-full py-2.5 border-2 border-dashed border-[#d2d2d7] rounded-lg text-[#86868b] hover:border-[#86868b] hover:text-[#1d1d1f] transition-all text-[13px] font-medium"
-      >
-        + Add Custom URL
-      </button>
-      <p className="text-[11px] text-[#86868b] mt-2 flex items-center gap-1">
-        <span className="text-[#0071e3]">Tip:</span> Fill in your username for each platform you use
-      </p>
+      {/* Empty State */}
+      {formData.socialLinks.length === 0 && (
+        <div className="py-8 text-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#f5f5f7] flex items-center justify-center">
+            <Link2 className="w-6 h-6 text-[#86868b]" />
+          </div>
+          <p className="text-[14px] text-[#1d1d1f] font-medium">No links added yet</p>
+          <p className="text-[12px] text-[#86868b] mt-1">Select a platform above to add your first link</p>
+        </div>
+      )}
+
     </div>
   );
 };
 
 // Step 4: Profile Details
 const Step4 = ({ formData, updateField }) => {
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateField('profile_image_url', reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   return (
     <div className="space-y-4">
       {/* Profile Image */}
@@ -679,10 +848,43 @@ const Step4 = ({ formData, updateField }) => {
           Profile image
         </label>
 
-        <div className="flex items-start gap-4">
+        {/* Fetched Avatars from Social Platforms */}
+        {formData.fetchedAvatars && formData.fetchedAvatars.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[11px] text-[#86868b] mb-2">Choose from your social profiles:</p>
+            <div className="flex gap-2 flex-wrap">
+              {formData.fetchedAvatars.map((avatar, index) => (
+                <button
+                  key={index}
+                  onClick={() => updateField('profile_image_url', avatar.url)}
+                  className={`relative w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${
+                    formData.profile_image_url === avatar.url
+                      ? 'border-[#0071e3] scale-105'
+                      : 'border-[#e8e8ed] hover:border-[#0071e3]'
+                  }`}
+                  title={`${avatar.platform}: @${avatar.handle}`}
+                >
+                  <img
+                    src={avatar.url}
+                    alt={`${avatar.platform} avatar`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                  />
+                  {formData.profile_image_url === avatar.url && (
+                    <div className="absolute inset-0 bg-[#0071e3]/20 flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-[#0071e3]" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-4">
           {/* Avatar Preview */}
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full bg-[#f5f5f7] flex items-center justify-center overflow-hidden border-2 border-[#e8e8ed]">
+          <div className="relative flex-shrink-0">
+            <div className="w-16 h-16 rounded-full bg-[#f5f5f7] flex items-center justify-center overflow-hidden border-2 border-[#e8e8ed]">
               {formData.profile_image_url ? (
                 <img
                   src={formData.profile_image_url}
@@ -691,7 +893,7 @@ const Step4 = ({ formData, updateField }) => {
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
               ) : (
-                <User className="w-8 h-8 text-[#86868b]" />
+                <User className="w-6 h-6 text-[#86868b]" />
               )}
             </div>
             {formData.profile_image_url && (
@@ -704,36 +906,19 @@ const Step4 = ({ formData, updateField }) => {
             )}
           </div>
 
-          {/* Upload Options */}
-          <div className="flex-1 space-y-2">
-            <label className="block">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <span className="inline-flex items-center gap-2 px-3 py-2 bg-[#1d1d1f] text-white text-[13px] font-medium rounded-lg cursor-pointer hover:bg-[#424245] transition-colors">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Upload Photo
-              </span>
-            </label>
-
-            <p className="text-[11px] text-[#86868b]">or enter URL</p>
-
+          {/* URL Input */}
+          <div className="flex-1">
             <input
               type="url"
-              value={formData.profile_image_url?.startsWith('data:') ? '' : formData.profile_image_url}
+              value={formData.profile_image_url || ''}
               onChange={(e) => updateField('profile_image_url', e.target.value)}
-              placeholder="https://example.com/avatar.jpg"
-              className="w-full px-3 py-2 bg-[#f5f5f7] border-0 rounded-lg text-[13px] font-mono text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3] focus:bg-white transition-all"
+              placeholder="Or enter a custom URL..."
+              className="w-full px-3 py-2.5 bg-[#f5f5f7] border-2 border-transparent rounded-xl text-[13px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0071e3] focus:bg-white transition-all"
             />
           </div>
         </div>
         <p className="text-[11px] text-[#86868b] mt-2 flex items-center gap-1">
-          <span className="text-[#0071e3]">Tip:</span> A profile photo makes your page more personal and recognizable
+          <svg className="w-3.5 h-3.5 text-[#0071e3] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg> Choose from your social profiles or enter a custom URL
         </p>
       </div>
 
@@ -749,11 +934,11 @@ const Step4 = ({ formData, updateField }) => {
             value={formData.nearest_city_name}
             onChange={(e) => updateField('nearest_city_name', e.target.value)}
             placeholder="Search for your city"
-            className="w-full pl-10 pr-4 py-3 bg-[#f5f5f7] border-0 rounded-xl text-[14px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:ring-2 focus:ring-[#0071e3] focus:bg-white transition-all"
+            className="w-full pl-10 pr-4 py-3 bg-[#f5f5f7] border-2 border-transparent rounded-xl text-[14px] text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-[#0071e3] focus:bg-white transition-all"
           />
         </div>
         <p className="text-[11px] text-[#86868b] mt-1.5 flex items-center gap-1">
-          <span className="text-[#0071e3]">Tip:</span> Helps connect you with nearby Zcash users and meetups
+          <svg className="w-3.5 h-3.5 text-[#0071e3] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg> Helps connect you with nearby Zcash users and meetups
         </p>
       </div>
     </div>
@@ -852,47 +1037,10 @@ const MobilePreviewCard = ({ formData, socialPlatforms, cardThemes }) => {
   const currentTheme = cardThemes.find(t => t.id === formData.cardTheme) || cardThemes[0];
 
   // Determine text color based on theme brightness
-  const isLightTheme = ['aurora', 'coral', 'arctic', 'lavender', 'sunset'].includes(currentTheme.id);
-  const textColor = isLightTheme ? '#1d1d1f' : '#faf6ed';
-  const textMuted = isLightTheme ? 'rgba(29,29,31,0.6)' : 'rgba(250,246,237,0.6)';
-  const accentColor = currentTheme.accent || (isLightTheme ? '#1d1d1f' : '#f5c542');
-
-  // ASCII pattern generator
-  const renderAsciiBackground = (pattern) => {
-    const patterns = {
-      matrix: `
-        01001101 10110010 01101001
-        10110100 01001011 10010110
-        01001101 10110010 01101001
-        10010110 01101001 01001101
-        01101001 10010110 10110010
-        10110010 01001101 01101001
-        01001101 10110010 01101001
-        10010110 01101001 10110100
-      `,
-      dots: `
-        •   •   •   •   •   •   •
-          •   •   •   •   •   •
-        •   •   •   •   •   •   •
-          •   •   •   •   •   •
-        •   •   •   •   •   •   •
-          •   •   •   •   •   •
-        •   •   •   •   •   •   •
-          •   •   •   •   •   •
-      `,
-      waves: `
-        ～～～～～～～～～～～～
-        ～～～～～～～～～～～～
-        ～～～～～～～～～～～～
-        ～～～～～～～～～～～～
-        ～～～～～～～～～～～～
-        ～～～～～～～～～～～～
-        ～～～～～～～～～～～～
-        ～～～～～～～～～～～～
-      `
-    };
-    return patterns[pattern] || '';
-  };
+  const isLightTheme = currentTheme.isLight;
+  const textColor = isLightTheme ? '#1d1d1f' : '#ffffff';
+  const textMuted = isLightTheme ? 'rgba(29,29,31,0.6)' : 'rgba(255,255,255,0.7)';
+  const accentColor = isLightTheme ? '#1d1d1f' : '#f5c542';
 
   const getSocialIcon = (platform) => {
     switch (platform) {
@@ -971,9 +1119,6 @@ const MobilePreviewCard = ({ formData, socialPlatforms, cardThemes }) => {
 
   // Get card background style
   const getCardBackground = () => {
-    if (currentTheme.type === 'mesh' || currentTheme.type === 'solid') {
-      return { background: currentTheme.bg };
-    }
     return { backgroundColor: currentTheme.bg };
   };
 
@@ -986,40 +1131,21 @@ const MobilePreviewCard = ({ formData, socialPlatforms, cardThemes }) => {
         className="w-full h-full rounded-2xl overflow-hidden shadow-lg flex flex-col relative group"
         style={getCardBackground()}
       >
-        {/* ASCII Background Pattern */}
-        {currentTheme.type === 'ascii' && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-            <pre
-              className="text-[8px] leading-[1.2] font-mono whitespace-pre opacity-20"
-              style={{
-                color: currentTheme.pattern === 'matrix' ? '#00ff00' :
-                       currentTheme.pattern === 'dots' ? '#8b5cf6' : '#06b6d4'
-              }}
-            >
-              {renderAsciiBackground(currentTheme.pattern)}
-            </pre>
+        {/* Passport Stamp Overlay */}
+        {formData.addressVerified && (
+          <div className="absolute z-20 pointer-events-none" style={{ top: '8%', right: '15%' }}>
+            <svg width={80} height={80} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className={isLightTheme ? 'text-emerald-600' : 'text-emerald-400'}>
+              <g opacity="0.6">
+                <circle cx="100" cy="100" r="85" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray="2 4" />
+                <circle cx="100" cy="100" r="70" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="2 3" />
+                <path d="M 60 95 L 85 120 L 140 65" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+                <text x="100" y="35" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="600" letterSpacing="2">VERIFIED</text>
+                <text x="100" y="175" textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="400" letterSpacing="1">2025</text>
+              </g>
+            </svg>
           </div>
         )}
-        {/* Interactive ASCII Background */}
-        {currentTheme.type === 'ascii-interactive' && (
-          <DelicateAsciiDots
-            backgroundColor={currentTheme.bg}
-            textColor={currentTheme.textColor || '139, 92, 246'}
-            gridSize={40}
-            removeWaveLine={true}
-            animationSpeed={0.5}
-          />
-        )}
-        {/* Blinking ASCII Background */}
-        {currentTheme.type === 'ascii-blink' && (
-          <BlinkingAsciiDots
-            backgroundColor={currentTheme.bg}
-            textColor={currentTheme.textColor || '34, 211, 238'}
-            density={1.2}
-            removeWaveLine={true}
-            animationSpeed={0.6}
-          />
-        )}
+
         {/* Spotlight Effect */}
         <motion.div
           className="pointer-events-none absolute inset-0 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -1065,8 +1191,8 @@ const MobilePreviewCard = ({ formData, socialPlatforms, cardThemes }) => {
               </div>
               {formData.addressVerified && (
                 <div
-                  className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-[#1b5e20] rounded-full flex items-center justify-center"
-                  style={{ border: `2px solid ${currentTheme.bg?.includes('gradient') ? '#1a1a1a' : currentTheme.bg}` }}
+                  className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center"
+                  style={{ border: `2px solid ${currentTheme.bg}` }}
                 >
                   <Check className="w-3 h-3 text-white" />
                 </div>
