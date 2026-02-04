@@ -53,9 +53,4 @@ compress.ps1
 
 
 
-# Ignore admin refund tooling
-src/components/AdminRefundPage.jsx
-src/components/AdminRefundPage.*
-
-# Ignore admin refund page and any variants
-src/components/AdminRefundPage.jsx
+.vercel
