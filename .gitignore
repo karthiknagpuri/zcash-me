@@ -59,4 +59,3 @@ src/components/AdminRefundPage.*
 
 # Ignore admin refund page and any variants
 src/components/AdminRefundPage.jsx
-src/supabase.js
